@@ -25,7 +25,7 @@ class OrderService {
     private lateinit var meterRegistry: MeterRegistry
 
     @Inject
-    @Channel("orders")
+    @Channel("orders-out")
     private lateinit var orderEmitter: Emitter<Long>
 
     private val logger = Logger.getLogger(OrderService::class.java)

@@ -27,9 +27,15 @@ class OrderProcessor {
 
     private val logger = Logger.getLogger(OrderProcessor::class.java)
 
-    @Incoming("orders")
+    @Incoming("orders-in")
     @Transactional
-    fun processOrder(orderId: Long) {
+    fun processOrder(orderIdStr: String) {
+        val orderId = orderIdStr.toLongOrNull()
+        if (orderId == null) {
+            logger.error("Invalid order ID received: $orderIdStr")
+            return
+        }
+
         logger.info("Processing order: $orderId")
 
         val order = orderRepository.findById(orderId)

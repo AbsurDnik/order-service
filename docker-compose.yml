@@ -14,6 +14,11 @@ services:
       - postgres-data:/var/lib/postgresql/data
     networks:
       - order-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U orderuser -d orderdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   rabbitmq:
     image: rabbitmq:3-management-alpine
@@ -26,6 +31,11 @@ services:
       - "15672:15672" # Management UI
     networks:
       - order-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   order-service:
     build:
@@ -43,10 +53,13 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      - postgres
-      - rabbitmq
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     networks:
       - order-network
+    restart: on-failure
 
 volumes:
   postgres-data:
