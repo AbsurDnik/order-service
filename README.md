@@ -1,7 +1,5 @@
 # Order Service - Asynchronous Microservice
 
-A Kotlin-based microservice built with Quarkus that processes orders asynchronously using RabbitMQ and stores them in PostgreSQL.
-
 ## Order Processing Flow
 
 1. Client submits order via POST `/api/orders`
@@ -28,6 +26,33 @@ A Kotlin-based microservice built with Quarkus that processes orders asynchronou
 - More resource-intensive than Redis
 - Additional complexity compared to Redis pub/sub
 - For this minimal example, Redis would also work, but RabbitMQ is better suited for production order processing
+
+### Assumptions
+
+1. **No Authentication**: Simplified for demo; production would need OAuth2/JWT
+2. **No Inventory Deduction**: Validation only; actual inventory decrement not implemented
+3. **Single Instance**: No distributed transaction handling or idempotency keys
+4. **No Idempotency Key on Order Creation**: Assumes order creation is idempotent
+5. **API and Worker in the Same Application**: In production, the API and background workers should be separated to allow independent scaling, better fault isolation, and clearer responsibility boundaries
+6. **Basic Error Handling**: Production would need retry policies, circuit breakers
+7. **Simplified Discount Logic**: Hardcoded 10% rule for demonstration
+8. **No Order Cancellation**: Orders can only be created and processed
+9. **Message Delivery**: Assumes RabbitMQ acknowledgment is enough (no DLQ configured)
+
+### Future Enhancements
+
+For production readiness, consider:
+- [ ] Add integration tests with Testcontainers
+- [ ] Implement API versioning
+- [ ] Add request validation with Hibernate Validator
+- [ ] Configure dead letter queue for failed messages
+- [ ] Implement idempotency with unique order keys
+- [ ] Add distributed tracing (OpenTelemetry)
+- [ ] Set up health checks and readiness probes
+- [ ] Configure database migrations (Flyway/Liquibase)
+- [ ] Add API documentation (OpenAPI/Swagger)
+- [ ] Implement rate limiting and backpressure
+- etc...
 
 ## Prerequisites
 
@@ -58,6 +83,27 @@ docker-compose up postgres rabbitmq -d
 # Run the application
 ./mvnw quarkus:dev
 ```
+
+## Observability
+
+### Logs
+
+The application uses structured logging with different levels:
+
+Key log indicators:
+- `Creating order for customer: X` - Order received
+- `Order ID X sent to queue` - Order queued successfully
+- `Processing order: X` - Background worker started
+- `Order X processed successfully` - Processing completed
+
+### Metrics
+
+Access Prometheus metrics at: http://localhost:8080/q/metrics
+
+**Key Metrics**:
+- `orders_received_total`: Total orders received via API
+- `orders_processed_total`: Successfully processed orders
+- `orders_failed_total`: Failed order processing attempts
 
 ## API Usage
 
@@ -113,51 +159,3 @@ curl http://localhost:8080/api/orders
 ```bash
 curl http://localhost:8080/q/metrics
 ```
-
-## Observability
-
-### Logs
-
-The application uses structured logging with different levels:
-
-Key log indicators:
-- `Creating order for customer: X` - Order received
-- `Order ID X sent to queue` - Order queued successfully
-- `Processing order: X` - Background worker started
-- `Order X processed successfully` - Processing completed
-
-### Metrics
-
-Access Prometheus metrics at: http://localhost:8080/q/metrics
-
-**Key Metrics**:
-- `orders_received_total`: Total orders received via API
-- `orders_processed_total`: Successfully processed orders
-- `orders_failed_total`: Failed order processing attempts
-
-## Assumptions
-
-1. **No Authentication**: Simplified for demo; production would need OAuth2/JWT
-2. **No Inventory Deduction**: Validation only; actual inventory decrement not implemented
-3. **Single Instance**: No distributed transaction handling or idempotency keys
-4. **No Idempotency Key on Order Creation**: Assumes order creation is idempotent
-5. **API and Worker in the Same Application**: In production, the API and background workers should be separated to allow independent scaling, better fault isolation, and clearer responsibility boundaries
-6. **Basic Error Handling**: Production would need retry policies, circuit breakers
-7. **Simplified Discount Logic**: Hardcoded 10% rule for demonstration
-8. **No Order Cancellation**: Orders can only be created and processed
-9. **Message Delivery**: Assumes RabbitMQ acknowledgment is enough (no DLQ configured)
-
-## Future Enhancements
-
-For production readiness, consider:
-- [ ] Add integration tests with Testcontainers
-- [ ] Implement API versioning
-- [ ] Add request validation with Hibernate Validator
-- [ ] Configure dead letter queue for failed messages
-- [ ] Implement idempotency with unique order keys
-- [ ] Add distributed tracing (OpenTelemetry)
-- [ ] Set up health checks and readiness probes
-- [ ] Configure database migrations (Flyway/Liquibase)
-- [ ] Add API documentation (OpenAPI/Swagger)
-- [ ] Implement rate limiting and backpressure
-- etc...
